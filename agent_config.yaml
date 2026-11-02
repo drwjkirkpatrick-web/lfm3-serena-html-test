@@ -1,0 +1,28 @@
+# ─── LFM3-1.7B + Serena Agent Bridge Config (Nov 2026 test) ─────
+# Verified LFM3 serve profile from ~/projects/lfm3-jetson-hermes/
+# (vendor sampling; greedy is FORBIDDEN for this model)
+
+llm:
+  base_url: "http://127.0.0.1:8090/v1"
+  model: "lfm3-1.7b-qad"
+  max_tokens: 17000        # LFM3 plans whole answers in reasoning_content (~4.6K tok for a full HTML page) then emits in one pass; needs >=8000
+  temperature: 0.1         # vendor rec — NEVER temp 0.0 (loops inside think block)
+  top_p: 0.95
+  top_k: 50                # vendor rec
+  repeat_penalty: 1.1      # vendor rec
+  thinking: false          # server runs the nothink template; thinking is unsuppressible but bounded into reasoning_content
+  timeout: 4000.0
+  context_window: 65536    # launch profile 64k/f16
+
+agent:
+  max_turns: 30
+  max_tool_result_chars: 8000
+
+serena:
+  bin: "/home/walker/.local/bin/serena"
+  context: ""              # default context (NOT "ide" — strips file tools)
+  project: "/home/walker/projects/lfm3-serena-html-test"
+
+output:
+  filename: "index.html"
+  log_file: "agent_log.json"
