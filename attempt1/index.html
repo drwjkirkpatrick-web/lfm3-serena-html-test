@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CRYPT OF THE SHADOW KING</title>
+<style>
+body{margin:0;background:#000;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden;}
+canvas{display:block;}
+.scanlines{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,0.4)50%,rgba(0,0,0,1));}
+.vignette{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(255,0,0,0.3));}
+</style>
+</head>
+<body>
+<canvas id="c" width="800" height="600"></canvas>
+<script>
+let showTitle = true;
+const CW = 800, CH = 600, T = 32;
+let audioCtx = null;
+let mute = false;
+let px = 0, py = 0;
+let floor = 1;
+let roomX = 2, roomY = 2;
+let playerHP = 5;
+let keys = {};
+let score = 0;
+let enemies = [];
+function initAudio(){ if(!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } }
+function drawTitle(){
+  const c = canvas.getContext('2d');
+  c.fillStyle = '#fff'; c.font = 'monospace'; c.textAlign = 'center';
+  c.fillText('CRYPT OF THE SHADOW KING', CW/2, CH/2);
+  c.fillText('PRESS SPACE TO ENTER', CW/2, CH/2+40);
+}
+function drawMinimap(){
+  const c = canvas.getContext('2d');
+  for(let y=0;y<CH;y+=T){
+    for(let x=0;x<CW;x+=T){
+      if(px>=x && py>=y && px<=x+T && py<=y+T){ c.fillStyle='#111'; c.fillRect(x,y,T,T); }
+    }
+  }
+}
+function drawHUD(){
+  const c = canvas.getContext('2d');
+  c.fillStyle = '#fff'; c.font = 'monospace'; c.textAlign = 'center';
+  c.fillText(floor, CW/2-8, CH/2);
+  const hpPct = playerHP/5;
+  c.fillStyle = '#f00'; c.beginPath(); c.arc(10,CH/4,T/3,0,Math.PI*2); c.fill();
+  c.fillRect(20,CH/4-1,CW-40,T);
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(CW-20,CH/4,T/3,0,Math.PI*2); c.fill();
+  c.fillRect(CW-30, CH/4-1,40,T);
+  c.fillStyle = '#ffd700'; c.font = 'monospace'; c.textAlign = 'center';
+  c.fillText('Score: '+score, CW/2,10);
+}
+function updateEnemies(){
+  for(const e of enemies){
+    const ex = e.x * T; const ey = e.y * T;
+    if(e.type==='rat'){ e.x += Math.random()*T-0.5; } else if(e.type==='skeleton'){ e.x -= Math.random()*T+0.5; }
+  }
+}
+function spawnEnemies(){
+  for(let i=0;i<3 && (enemies.length<6);i++){
+    const t = ['rat','skeleton','mage'][Math.floor(Math.random()*3)];
+    let ex = Math.random()*CW/T; let ey = Math.random()*CH/T;
+    enemies.push({x:ex,y:ey,type:t,hp:1+(t==='skeleton'?2:1),damage:5});
+  }
+}
+function gameLoop(){
+  if(showTitle){
+    drawTitle();
+    requestAnimationFrame(gameLoop);
+    showTitle = false;
+    return;
+  }
+  updateEnemies();
+  const rows = Math.floor(py/T);
+  if(rows>=floor*3){
+    floor++; px=0; py=0; spawnEnemies();
+  }
+  drawMinimap(); drawHUD();
+  requestAnimationFrame(gameLoop);
+}
+function gameStart(){
+  initAudio();
+  floor = 1; roomX = 2; roomY = 2; px = 0; py = 0; playerHP = 5;
+  enemies = []; spawnEnemies();
+  document.body.innerHTML = '<canvas id="c" width="800" height="600"></canvas>';
+}
+gameStart();
+</script>
+</body>
+</html>

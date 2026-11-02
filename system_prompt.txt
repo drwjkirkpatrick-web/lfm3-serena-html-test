@@ -7,6 +7,10 @@ CRITICAL OUTPUT RULES:
 - All code in ONE <script> block.
 - Desktop: arrow keys/WASD to move, spacebar to attack. Mobile: touch.
 
-REASONING BUDGET:
-- Keep your thinking SHORT (under 600 tokens). Do NOT plan the entire code in reasoning.
-- Decide the architecture in a few lines, then immediately call create_text_file with the complete file.
+BUILD STRATEGY (MANDATORY — STAGED BUILD):
+- NEVER write the whole game in one response.
+- Step 1, first turn: call create_text_file with a SKELETON — complete HTML/CSS/canvas/game-loop/input code plus one clearly named EMPTY function stub for each major system:
+  generateDungeon(), spawnEnemies(), updateEnemies(), playerAttack(), checkCollisions(), spawnItems(), usePotion(), spawnBoss(), updateMinimap(), playSfx().
+- Step 2, following turns: replace_content ONE stub per turn with its full working implementation (relative_path="index.html", old_string = the exact current stub line, new_string = the complete implementation).
+- Step 3, final turns: list_dir + read_file to verify the file is complete and balanced. Report which features are implemented.
+- Each single response must produce or replace at most ~120 lines. Multiple turns are expected and encouraged (up to 30).
