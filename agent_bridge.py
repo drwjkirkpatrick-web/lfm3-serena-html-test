@@ -362,8 +362,14 @@ async def run_agent(task_prompt: str, cfg: dict, project_dir: str, log_file: str
 
                 elif finish_reason == "stop":
                     # Fallback: extract and save if content contains code
-                    if content and ("<!DOCTYPE" in content or "```html" in content):
-                        if "```html" in content:
+                    is_py = output_filename.endswith(".py")
+                    if content and ("```" in content or "<!DOCTYPE" in content
+                                    or (is_py and content.lstrip().startswith(("import ", "from ", "def ", "#!")))):
+                        if "```python" in content:
+                            i = content.index("```python") + 9
+                            j = content.rindex("```") if content.rindex("```") > i else len(content)
+                            html_content = content[i:j].strip()
+                        elif "```html" in content:
                             html_start = content.index("```html") + 7
                             html_content = content[html_start:content.rindex("```")].strip()
                         elif "<!DOCTYPE" in content:
