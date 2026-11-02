@@ -5,14 +5,14 @@
 llm:
   base_url: "http://127.0.0.1:8090/v1"
   model: "lfm3-1.7b-qad"
-  max_tokens: 32768        # LFM3 over-plans big one-shot tasks (17K budget burned entirely in reasoning on a 3053-char prompt); 32K leaves room for plan + ~30K-char file
+  max_tokens: 65536        # user-set 64K turn budget — room for a long reasoning pass + a ~30K-char file at 262144 window
   temperature: 0.1         # vendor rec — NEVER temp 0.0 (loops inside think block)
   top_p: 0.95
   top_k: 50                # vendor rec
   repeat_penalty: 1.1      # vendor rec
   thinking: false          # server runs the nothink template; thinking is unsuppressible but bounded into reasoning_content
   timeout: 4000.0
-  context_window: 65536    # launch profile 64k/f16
+  context_window: 262144   # full native window the server is serving — trimmer budgeted against it so history is never dropped
 
 agent:
   max_turns: 30
