@@ -55,7 +55,11 @@ discovers the toolset, and runs up to 30 turns until the game is written and ver
 
 ## Results
 
-See `RESULTS.md` after the first run — agent turn-by-turn log, timing, and the generated game.
+See `RESULTS.md` for the first-run findings (staged build tripled output size and
+features vs one-shot on the same prompt).
+
+The 6-run language comparison suite (3 action games × HTML/Python) lives in its own
+repo: **drwjkirkpatrick-web/lfm3-serena-game-suite**.
 
 ## Credits
 
