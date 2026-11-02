@@ -6,3 +6,7 @@ CRITICAL OUTPUT RULES:
 - Output ONLY the HTML code inside a single ```html code block. No explanations.
 - All code in ONE <script> block.
 - Desktop: arrow keys/WASD to move, spacebar to attack. Mobile: touch.
+
+REASONING BUDGET:
+- Keep your thinking SHORT (under 600 tokens). Do NOT plan the entire code in reasoning.
+- Decide the architecture in a few lines, then immediately call create_text_file with the complete file.
