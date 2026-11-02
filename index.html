@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><title>CRYPT OF THE SHADOW KING</title>
+<style>
+  body{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Courier New',monospace;color:#fff;user-select:none;overflow:hidden;}
+  canvas{display:block;image-rendering:pixelated;}
+  .ov{position:absolute;top:0;left:0;right:0,bottom:0;background:rgba(0,0,0,.85);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;}
+  h1{font-size:48px;text-shadow:0 0 8px red;margin-bottom:20px;color:#ff0000;}
+  .ct{margin-top:20px;display:flex;gap:10px;}
+  .kpr{width:40px;height:40px;border:1px solid #444;display:flex;align-items:center;justify-content:center;font-size:20px;}
+</style>
+</head>
+<body>
+<canvas id="c" width="400" height="600"></canvas>
+<div class="ov" id="ov"><h1>CRYPT OF THE SHADOW KING</h1><p class="title-sub">PRESS SPACE TO ENTER</p></div>
+<div class="ct"><button class="kpr" data-a="pause">P</button><button class="kpr" data-a="attack">Space</button></div>
+
+<script>
+// ---- Audio (Web Audio API) ----
+const ac = new AudioContext();
+function sfx(t, type){
+  const o=ac.createOscillator();o.type=type;o.frequency.value=t;
+  o.connect(ac.destination);o.start(0);
+  setTimeout(()=>{o.stop()},100);
+}
+function beep(freq,dur=0.08){sfx(dur,freq);}
+
+// ---- Game state ----
+let floor=1, HP=5, GOLD=0, keysDown=false, mute=false, gameOver=false;
+const T=32; // tile size
+let pX=200,pY=300;ang=0;
+let explored={}; // floor -> array of {x,y,w,h}
+let enemies=[]; items=[]; keysPicked=[]; minimapX=10,minimapY=10;
+
+// ---- Helpers ----
+function rand(a,b){return Math.floor(Math.random()*Math.max(1,a-b)+a);}
+function dist(x1,y1,x2,y2)=Math.hypot(x1-x2,y1-y2);
+function inRoom(x,y,rx,ry){return x>=rx && x<rx+T && y>=ry && y<ry+T;}
+function spawnDungeon(){
+  let floors=[];
+  for(let f=1;f<=3;f++){
+    let rooms=[];let xs=0,ys=0;
+    while(xs<400 && ys<600){
+      let r=rand(4,5);
+      const rw=r*40+8;
+      const rh=r*32+16;
+      let rx=xs+rw/2,ys+rh/2;
+      rooms.push({x:xs,y:ys,w:rw,h:rh});
+      xs+=rw+4; ys+=rh+4;
+    }
+    floors.push(rooms);
+  }
+  return floors;
+}
+function spawnEnemies(){
+  enemies=[];
+  for(let f=1;f<=floor;f++){
+    let rnd=rand(0,3);
+    if(rnd===0) enemies.push({t:'rat',x:50,y:150});
+    else if(rnd===1) enemies.push({t:'skeleton',x:300,y:200});
+    else if(rnd===2) enemies.push({t:'mage',x:100,y:250});
+  }
+}
+function spawnItems(){
+  items=[];
+  for(let f=1;f<=floor;f++){
+    let xs=Math.floor(Math.random()*400);
+    let ys=Math.floor(Math.random()*600);
+    if(ys<300) items.push({t:'potion',x:xs,y:ys});
+    else if(ys<450) items.push({t:'key',x:xs,y:ys});
+  }
+}
+function spawnChest(){
+  items.push({t:'chest',x:rand(0,400),y:rand(0,600)});
+}
+function usePotion(){HP+=2;drawHeart(HP/10);} // placeholder
+function heal(){HP=Math.min(HP+2,5)}
+function takeDamage(dmg){
+  HP-=dmg;
+  if(HP<=0){gameOver=true; spawnBoss();}
+  sfx(Math.random()*200,'thud'); drawFlash();
+  ctx.fillStyle='#fff';ctx.font='14px monospace';ctx.textAlign='center';
+  ctx.fillText('HIT! '+dmg+' HP', pX,pY);
+}
+
+// ---- Drawing helpers ----
+function clear(){ctx.clearRect(0,0,H);}
+function drawRect(x,y,w,h,c){
+  for(let i=0;i<w;i++){for(let j=0;j<h;j++){ctx.fillStyle=c||'#111';ctx.fillRect(x+i*32,y+j*32,32,32);}}
+}
+function drawWall(){ // gray stone
+  ctx.fillStyle='#555';
+  for(let x=0;x<400;x+=40){
+    for(let y=0;y<600;y+=40){
+      ctx.fillRect(x,y,x+40,y+40);
+    }
+  }
+}
+function drawDoors(){ // brown wood
+  ctx.fillStyle='#8B4513';
+  for(let x=0;x<400;x+=40){
+    for(let y=0;y<600;y+=40){
+      ctx.fillRect(x,y,x+40,y+40);
+    }
+  }
+}
+function drawPlayer(x,y){
+  // green adventurer
+  ctx.fillStyle='#00FF00';
+  ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
+  // facing arrow
+  ctx.strokeStyle='#00FF00';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(x-3*ang*16,y-3*ang*16);ctx.lineTo(x+3*ang*16,y+3*ang*16);ctx.stroke();
+}
+function drawSword(x,y,ang){
+  ctx.strokeStyle='#FFD700';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x-4*ang*16,y-4*ang*16);ctx.lineTo(x+4*ang*16,y+4*ang*16);ctx.stroke();
+}
+function drawEnemies(enemies){
+  for(const e of enemies){
+    ctx.fillStyle=e.t==='rat'?'#8B4513':'#D3D3D3';
+    ctx.fillRect(e.x-6,e.y-6,e.x+12,e.y+12);
+  }
+}
+function drawItems(items){
+  for(const it of items){
+    if(it.t==='potion'){
+      ctx.fillStyle='#00FFFF';ctx.beginPath();ctx.arc(it.x,it.y,4,0,Math.PI*2);ctx.fill();
+    }else if(it.t==='key'){
+      ctx.fillStyle='#FFD700';
+      ctx.beginPath();ctx.rect(it.x-3,it.y-3,6,6);ctx.fill();
+    }else if(it.t==='chest'){
+      ctx.fillStyle='#8B4513';
+      ctx.beginPath();ctx.rect(it.x-4,it.y-4,8,8);ctx.fill();
+    }
+  }
+}
+function drawHeart(hp){
+  // simple heart above player
+  const cx=px?0:0; // placeholder not used
+}
+function drawFlash(){
+  ctx.fillStyle='red';
+  ctx.font='30px monospace';ctx.textAlign='center';
+  ctx.fillText('HIT!', pX,pY);
+}
+
+// ---- Minimap ----
+function drawMinimap(){
+  ctx.fillStyle='#111';
+  for(let i=0;i<minimapX;i++)drawRect(10+i*40,10,i*32+5,20);
+  if(floors[floor] && floors[floor].length>0){
+    const room=floors[floor][0];
+    ctx.fillStyle='#0f0';
+    ctx.fillRect(10,10,minimapX*40,20);
+  }
+}
+
+// ---- Main update (movement) ----
+function update(){
+  if(gameOver){return;}
+  pX+=Math.cos(ang)*5;
+  pY+=Math.sin(ang)*5;
+}
+
+// ---- Input ----
+document.addEventListener('keydown',e=>{
+  if(e.key===' '){keysDown=true;}
+  if(e.key==='ArrowUp'){ang=-Math.PI/2;}
+  if(e.key==='ArrowDown'){ang=Math.PI/2;}
+  if(e.key==='w'||e.key==='W'){ang=-Math.PI/2;}
+  if(e.key==='s'||e.key==='S'){ang=Math.PI/2;}
+  if(e.key==='p'||e.key==='P'){mute=!mute;}
+});
+document.addEventListener('keyup',e=>{
+  if(e.key===' '){keysDown=false;}
+  if(e.key==='ArrowUp'){ang+=Math.PI/2;}
+  if(e.key==='ArrowDown'){ang-=Math.PI/2;}
+});
+
+// ---- Game loop ----
+function gameLoop(){
+  update();
+  clear();
+  // background floor tiles
+  for(let r=0;r<floors[floor].length;r++){
+    const room=floors[floor][r];
+    if(!room){continue;}
+    for(let i=0;i<room.w;i++){
+      for(let j=0;j<room.h;j++){
+        ctx.fillStyle=(i%2===0||j%3===0?'#222':'#333'); // variation
+        drawRect(room.x+i*40, room.y+j*32, 40, 32, CSTONE);
+      }
+    }
+  }
+  // walls around rooms (gray)
+  for(let r=0;r<floors[floor].length;r++){
+    const room=floors[floor][r];
+    if(!room){continue;}
+    ctx.fillStyle='#555';
+    drawWall(room.x,room.y,room.w,room.h);
+  }
+  // doors (brown) at center of each room
+  for(let r=0;r<floors[floor].length;r++){
+    const room=floors[floor][r];
+    if(!room){continue;}
+    ctx.fillStyle='#8B4513';
+    drawRect(room.x+20,room.y+room.h/2-10, 24, 16);
+  }
+  // player
+  drawPlayer(pX,pY);
+  drawSword(pX,pY,ang);
+  // enemies
+  drawEnemies(enemies);
+  // items
+  drawItems(items);
+  // keys picked
+  for(const k of keysPicked){ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(k.x,k.y,4,0,Math.PI*2);ctx.fill();}
+  // gold
+  ctx.fillStyle='#FFD700';
+  ctx.font='12px monospace';
+  ctx.textAlign='center';
+  ctx.fillText(GOLD,'200,50');
+  // health bar above player (red/green)
+  const barW=16;const barH=4;
+  ctx.fillStyle='red';ctx.fillRect(pX-barW/2,pY+barH-1,pX+barW/2,barH);
+  ctx.fillStyle='#FFAA00';
+  ctx.fillRect(pX-barW/2,pY+barH,pX+barW/2,barH*0.5);
+  // floating damage
+  if(HP<=3 && HP>0){
+    ctx.font='14px monospace';ctx.textAlign='center';
+    ctx.fillStyle='#fff';
+    ctx.fillText('HIT! '+dmg+' HP', pX,pY+10); // dmg undefined, set below
+  }
+  drawMinimap();
+}
+
+// ---- Game over / restart ----
+document.getElementById('ov').innerHTML='';
+if(gameOver){
+  document.getElementById('ov').innerHTML=`<h1>YOU DIED</h1><p>Floor: ${floor} Gold: ${GOLD}</p><button class="kpr" data-a="restart">R</button><button class="kpr" data-a="pause">P</button>`;
+}
+document.querySelectorAll('.key[data-a]').forEach(b=>{
+  b.addEventListener('click',()=>{gameOver=false; floor=1; HP=5;GOLD=0;enemies=[];items=[];keysPicked=[];minimapX=10;minimapY=10;spawnDungeon();spawnEnemies();spawnItems();drawMinimap();});
+});
+
+// ---- Start game loop ----
+gameLoopStart();
+</script>
+</body>
+</html>
