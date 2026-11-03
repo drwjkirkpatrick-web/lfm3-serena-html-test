@@ -274,6 +274,13 @@ async def run_agent(task_prompt: str, cfg: dict, project_dir: str, log_file: str
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write, sampling_callback=None) as session:
             await session.initialize()
+            # Bridge-initiated activation: remove the model's project choice entirely.
+            try:
+                act = await session.call_tool("activate_project", arguments={"project": cfg["serena"].get("project") or project_dir})
+                act_text = "\n".join(getattr(c, "text", "") for c in act.content)[:200]
+                log_event({"type": "activate", "summary": f"Bridge activated project: {act_text[:120]}"}, log_file)
+            except Exception as e:
+                log_event({"type": "activate_error", "summary": f"Bridge activation failed: {e}"}, log_file)
             tools = await get_serena_tools(session)
             tool_names = [t["function"]["name"] for t in tools]
             log_event({"type": "tools", "summary": f"Discovered {len(tools)} Serena tools", "tools": tool_names}, log_file)
