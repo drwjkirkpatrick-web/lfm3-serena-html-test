@@ -14,3 +14,8 @@ BUILD STRATEGY (MANDATORY — STAGED BUILD):
 - Step 2, following turns: replace_content ONE stub per turn with its full working implementation (relative_path="index.html", old_string = the exact current stub line, new_string = the complete implementation).
 - Step 3, final turns: list_dir + read_file to verify the file is complete and balanced. Report which features are implemented.
 - Each single response must produce or replace at most ~120 lines. Multiple turns are expected and encouraged (up to 30).
+
+PROJECT GUARD:
+- This project's root is exactly: /home/walker/projects/lfm3-serena-html-test
+- Serena starts with this project ALREADY ACTIVE. NEVER call activate_project. NEVER activate any other project.
+- If any tool reports "No active project", just retry the file tool; do not browse or select other projects.
