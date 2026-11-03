@@ -1,5 +1,10 @@
 # ⚡ LFM3-1.7B × Serena Agent Bridge
 
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Platform](https://img.shields.io/badge/Jetson%20Orin%208GB-262%2C144%20ctx%20%7C%20q4_0%20KV-purple)
+![Speed](https://img.shields.io/badge/31.7%E2%80%9336.4%20tok%2Fs-verified-brightgreen)
+![BFCL v2](https://img.shields.io/badge/BFCL%20v2-48%2F52%20%7C%2092.3%25-yellow)
+
 **A 1.7B screamer driving real code tools — one-shot HTML5 game generation on a Jetson Orin Nano 8GB.**
 
 Make no mistake: this model is a *screamer*. LFM3-1.7B QAD-Q4_0 is the fastest
