@@ -378,7 +378,8 @@ async def run_agent(task_prompt: str, cfg: dict, project_dir: str, log_file: str
                             html_content = content[i:j].strip()
                         elif "```html" in content:
                             html_start = content.index("```html") + 7
-                            html_content = content[html_start:content.rindex("```")].strip()
+                            close = content.rfind("```", html_start)
+                            html_content = (content[html_start:close] if close > html_start else content[html_start:]).strip()
                         elif "<!DOCTYPE" in content:
                             html_content = content[content.index("<!DOCTYPE"):].strip()
                         else:
